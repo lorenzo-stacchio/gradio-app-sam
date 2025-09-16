@@ -48,25 +48,22 @@ def on_click(pil_image, evt: gr.SelectData, label_mode: str):
     print(STATE["points"])
     with open("test.txt", "w") as f:
         f.writelines(" ".join(str(STATE["points"])))      
-          
+
     # draw a cross on a copy of the base image
     draw = ImageDraw.Draw(pil_image)
     size = 6
     color = (0, 255, 0) if label == 1 else (255, 0, 0)  # green or red
-    # horizontal + vertical lines
     draw.line((x - size, y, x + size, y), fill=color, width=2)
     draw.line((x, y - size, x, y + size), fill=color, width=2)
-    # gr.update()
     
     return pil_image, f"Clicked at (x={x}, y={y})"
 
 
-# def click_function(img, evt: gr.SelectData):
-#     x, y = evt.index  # coordinates of the click
-#     return f"Clicked at (x={x}, y={y})"
-
-def on_segment(multimask: bool):
-    if STATE["img"] is None or not STATE["points"]:
+def on_segment(multimask: bool, direct:bool):
+    # caso 1: non stiamo facendo segmentazione subito
+    # caso 2: ho accumulato i punti ma non ho niente
+    if (not direct or STATE["img"] is None) and (STATE["img"] is None or not STATE["points"]):
+    # if STATE["img"] is None or not STATE["points"]:
         return None, "Add at least one point."
     pts = np.array([[p[0], p[1]] for p in STATE["points"]], dtype=np.float32)
     lbl = np.array([p[2] for p in STATE["points"]], dtype=np.int32)
@@ -88,20 +85,21 @@ with gr.Blocks() as demo:
         out = gr.Image(type="pil", label="Processed Image")
     with gr.Row():
         label_mode = gr.Radio(["Foreground", "Background"], value="Foreground", label="Click label")
+        
         info = gr.Textbox(label="Output")
     
     multimask = gr.Checkbox(value=True, label="Try multiple masks")
+    direct = gr.Checkbox(value=True, label="Try direct segmentation")
 
-    # inp.clear()
     
     inp.upload(on_load, inputs=[inp])
-    # inp.select(click_function, [inp], info)
-    inp.select(on_click, inputs=[inp,label_mode], outputs=[inp, info])
+    select_evt  = inp.select(on_click, inputs=[inp,label_mode], outputs=[inp, info])
 
-    #, outputs=[inp])
+    select_evt.then(on_segment, inputs=[multimask, direct], outputs=[out, info])
+
     btn = gr.Button("Segment")
 
-    btn.click(on_segment, inputs=[multimask], outputs=[out, info])
+    btn.click(on_segment, inputs=[multimask,direct], outputs=[out, info])
 
 
 if __name__ == "__main__":
