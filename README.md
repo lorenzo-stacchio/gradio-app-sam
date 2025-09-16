@@ -17,7 +17,7 @@ Following usage is running on your computer.
 
 - Run：
   ```
-  python app.py
+  python app_2.py
   ```
 
 **Note：** Default model is `vit_l`，the demo can run on CPU. Default device is `cpu`
